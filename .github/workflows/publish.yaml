@@ -54,11 +54,11 @@ jobs:
 
       - name: Verify OpenCode desktop package
         run: |
-          package="$(find public/x86_64 -name 'opencode-desktop-1.18.23-1-x86_64.pkg.tar.zst' -print -quit)"
+          package="$(find public/x86_64 -name 'opencode-desktop-1.18.25-1-x86_64.pkg.tar.zst' -print -quit)"
           test -n "$package"
           bsdtar -xOf "$package" .PKGINFO > /tmp/opencode-desktop.pkginfo
-          grep -qx 'pkgver = 1.18.23-1' /tmp/opencode-desktop.pkginfo
-          grep -qx 'depend = opencode=1.18.23' /tmp/opencode-desktop.pkginfo
+          grep -qx 'pkgver = 1.18.25-1' /tmp/opencode-desktop.pkginfo
+          grep -qx 'depend = opencode=1.18.25' /tmp/opencode-desktop.pkginfo
           grep -qx 'optdepend = nodejs: needed only by npm CLI helpers bundled in node_modules' /tmp/opencode-desktop.pkginfo
           grep -qx 'depend = electron42' /tmp/opencode-desktop.pkginfo
           ! bsdtar -tf "$package" | grep -Eq '\.musl\.node$|/-musl[^/]*/'

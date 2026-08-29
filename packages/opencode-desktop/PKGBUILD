@@ -3,7 +3,7 @@
 # shellcheck shell=bash disable=SC2034,SC2154
 
 pkgname=opencode-desktop
-pkgver=1.18.23
+pkgver=1.18.25
 pkgrel=1
 pkgdesc='OpenCode desktop app built from source for system Electron'
 arch=('x86_64')
@@ -14,7 +14,7 @@ depends=(
   'gcc-libs'
   'glibc'
   'hicolor-icon-theme'
-  'opencode=1.18.23'
+  'opencode=1.18.25'
 )
 makedepends=(
   'bun'
@@ -32,13 +32,13 @@ conflicts=(
   'opencode-desktop-electron-bin'
 )
 options=('!strip' '!debug')
-_commit=ef2880f379129aa048be9e9353e30aa168d42c17
+_commit=cb7d8b2f5e44876ef98b661dc10590c915af3a9f
 source=(
   "$pkgname::git+https://github.com/anomalyco/opencode.git#commit=${_commit}"
   "$pkgname.sh"
   'enable-pacman-target.patch'
 )
-sha256sums=('0e90d5071af12e844c4a5e338b3f73ca18b38d1509145473a59603146fa7e23f'
+sha256sums=('6c869d6eff65140dd4ffe20c1dede703fbb0f5628d1ec24927d236e9b05372a6'
             '9d4ea3c1ce242edef248cae1cfaca971ef05c7225e52b49f8dd851395d0bbbbe'
             '93dcb9ec670404965d0420e84d89dc1d130b3c6ab26df87026af531b9e979daa')
 
