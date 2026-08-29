@@ -27,7 +27,7 @@ jobs:
           pacman-key --recv-keys F3B607488DB35A47 --keyserver keyserver.ubuntu.com
           pacman-key --lsign-key F3B607488DB35A47
           sed -i '/^\[core\]$/i[cachyos]\nServer = https://mirror.cachyos.org/repo/$arch/$repo\n' /etc/pacman.conf
-          pacman -Syu --needed --noconfirm git sudo
+          pacman -Syu --needed --noconfirm git jq sudo
           useradd --create-home builder
           printf 'builder ALL=(ALL) NOPASSWD: ALL\n' > /etc/sudoers.d/builder
           chown -R builder:builder "$GITHUB_WORKSPACE"
@@ -40,6 +40,32 @@ jobs:
             runuser -u builder -- bash -c "cd '$GITHUB_WORKSPACE/$package_dir' && makepkg --syncdeps --noconfirm"
             cp "$package_dir"/*.pkg.tar.zst public/x86_64/
           done
+
+      - name: Validate package archives
+        run: |
+          for package in public/x86_64/*.pkg.tar.zst; do
+            bsdtar -tf "$package" > /tmp/package-files
+            grep -qx '\.PKGINFO' /tmp/package-files
+            ! grep -Eq '(^/|(^|/)\.\.(/|$))' /tmp/package-files
+
+            bsdtar -xOf "$package" .PKGINFO > /tmp/package-info
+            grep -Eq '^arch = (any|x86_64)$' /tmp/package-info
+          done
+
+      - name: Verify OpenCode desktop package
+        run: |
+          package="$(find public/x86_64 -name 'opencode-desktop-1.18.23-1-x86_64.pkg.tar.zst' -print -quit)"
+          test -n "$package"
+          bsdtar -xOf "$package" .PKGINFO > /tmp/opencode-desktop.pkginfo
+          grep -qx 'pkgver = 1.18.23-1' /tmp/opencode-desktop.pkginfo
+          grep -qx 'depend = opencode=1.18.23' /tmp/opencode-desktop.pkginfo
+          grep -qx 'optdepend = nodejs: needed only by npm CLI helpers bundled in node_modules' /tmp/opencode-desktop.pkginfo
+          grep -qx 'depend = electron42' /tmp/opencode-desktop.pkginfo
+          ! bsdtar -tf "$package" | grep -Eq '\.musl\.node$|/-musl[^/]*/'
+          bsdtar -xOf "$package" usr/lib/opencode-desktop/package.json |
+            jq -e '.desktopName == "opencode-desktop"'
+          bsdtar -xOf "$package" usr/share/applications/opencode-desktop.desktop |
+            grep -qx 'Exec=opencode-desktop %U'
 
       - name: Verify portable Calamares build
         run: |

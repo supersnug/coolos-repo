@@ -1,0 +1,120 @@
+# Maintainer: supersnug
+# Based on the AUR opencode-desktop package maintained by Byeonghoon Yoo.
+# shellcheck shell=bash disable=SC2034,SC2154
+
+pkgname=opencode-desktop
+pkgver=1.18.23
+pkgrel=1
+pkgdesc='OpenCode desktop app built from source for system Electron'
+arch=('x86_64')
+url='https://github.com/anomalyco/opencode'
+license=('MIT')
+depends=(
+  'electron42'
+  'gcc-libs'
+  'glibc'
+  'hicolor-icon-theme'
+  'opencode=1.18.23'
+)
+makedepends=(
+  'bun'
+  'git'
+  'libxcrypt-compat'
+  'node-gyp'
+)
+optdepends=(
+  'nodejs: needed only by npm CLI helpers bundled in node_modules'
+)
+replaces=('opencode-desktop-electron')
+conflicts=(
+  'opencode-desktop-bin'
+  'opencode-desktop-electron'
+  'opencode-desktop-electron-bin'
+)
+options=('!strip' '!debug')
+_commit=ef2880f379129aa048be9e9353e30aa168d42c17
+source=(
+  "$pkgname::git+https://github.com/anomalyco/opencode.git#commit=${_commit}"
+  "$pkgname.sh"
+  'enable-pacman-target.patch'
+)
+sha256sums=('0e90d5071af12e844c4a5e338b3f73ca18b38d1509145473a59603146fa7e23f'
+            '9d4ea3c1ce242edef248cae1cfaca971ef05c7225e52b49f8dd851395d0bbbbe'
+            '93dcb9ec670404965d0420e84d89dc1d130b3c6ab26df87026af531b9e979daa')
+
+prepare() {
+  cd "$srcdir/$pkgname" || return
+
+  patch -Np1 -i "$srcdir/enable-pacman-target.patch"
+}
+
+build() {
+  cd "$srcdir/$pkgname" || return
+
+  export OPENCODE_CHANNEL=prod
+  export ELECTRON_BUILDER_CACHE="$srcdir/.cache/electron-builder"
+
+  bun install
+  bun run --cwd packages/desktop build
+
+  find packages/desktop/out -type f \
+    \( -name '*.js' -o -name '*.cjs' -o -name '*.mjs' \) \
+    -exec sed -i "s|$srcdir/$pkgname|/usr/lib/$pkgname|g" {} +
+
+  # System Electron otherwise treats the external main script as a development app.
+  sed -i 's/app\.isPackaged/true/g' packages/desktop/out/main/index.js
+
+  local sysver
+  sysver=$(< /usr/lib/electron42/version)
+
+  (cd packages/desktop && bun run package -- \
+    --linux pacman \
+    -c.asar=false \
+    -c.electronDist=/usr/lib/electron42 \
+    -c.electronVersion="$sysver" \
+    --publish=never)
+}
+
+package() {
+  local _bld="$srcdir/$pkgname/packages/desktop"
+
+  install -d "$pkgdir/usr/lib/$pkgname"
+  cp -a "$_bld/dist/linux-unpacked/resources/app/." "$pkgdir/usr/lib/$pkgname/"
+
+  local _pj="$pkgdir/usr/lib/$pkgname/package.json"
+  if grep -q '"desktopName"' "$_pj"; then
+    sed -i "s|\"desktopName\":[[:space:]]*\"[^\"]*\"|\"desktopName\": \"$pkgname\"|" "$_pj"
+  else
+    sed -i "/\"name\":/a\\  \"desktopName\": \"$pkgname\"," "$_pj"
+  fi
+  grep -q "\"desktopName\": \"$pkgname\"" "$_pj" || {
+    echo "ERROR: failed to set desktopName in $_pj" >&2
+    return 1
+  }
+
+  find "$pkgdir/usr/lib/$pkgname" -name '*.musl.node' -delete
+  find "$pkgdir/usr/lib/$pkgname" -depth -type d -name '*-musl*' -exec rm -rf {} +
+  chmod -R go-w "$pkgdir/usr/lib/$pkgname"
+
+  install -Dm755 "$srcdir/$pkgname.sh" "$pkgdir/usr/bin/$pkgname"
+
+  local _eb="$srcdir/.eb-pacman"
+  rm -rf "$_eb" && mkdir -p "$_eb"
+  bsdtar -xf "$_bld"/dist/*.pacman -C "$_eb"
+
+  local _ebname='ai.opencode.desktop'
+  sed -e "s|^Exec=.*|Exec=$pkgname %U|" \
+      -e "s|^Icon=.*|Icon=$pkgname|" \
+      -e "s|^StartupWMClass=.*|StartupWMClass=$pkgname|" \
+      "$_eb/usr/share/applications/$_ebname.desktop" |
+    install -Dm644 /dev/stdin "$pkgdir/usr/share/applications/$pkgname.desktop"
+
+  local png size
+  for png in "$_eb"/usr/share/icons/hicolor/*/apps/"$_ebname.png"; do
+    size=$(basename "$(dirname "$(dirname "$png")")")
+    install -Dm644 "$png" "$pkgdir/usr/share/icons/hicolor/$size/apps/$pkgname.png"
+  done
+
+  install -Dm644 "$srcdir/$pkgname/LICENSE" \
+    "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+}

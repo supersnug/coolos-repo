@@ -1,0 +1,3 @@
+enable arch-update.timer
+# Cachy Update provides its tray through /etc/xdg/autostart.
+enable psd.service

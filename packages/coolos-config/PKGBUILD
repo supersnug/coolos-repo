@@ -1,0 +1,95 @@
+# Maintainer: supersnug
+# shellcheck shell=bash disable=SC2034,SC2154
+
+pkgbase=coolos-config
+pkgname=(
+  'coolos-config'
+  'coolos-niri-settings'
+)
+pkgver=1.0.0
+pkgrel=1
+arch=('any')
+url='https://github.com/supersnug/coolos-repo'
+license=('GPL-3.0-only')
+source=(
+  'daemon.json'
+  'bpftune-support.conf'
+  '50-coolos.preset'
+  '50-coolos-user.preset'
+  'config.kdl'
+  'animation.kdl'
+  'autostart.kdl'
+  'input.kdl'
+  'keybinds.kdl'
+  'layout.kdl'
+  'misc.kdl'
+  'rules.kdl'
+  'noctalia.toml'
+)
+sha256sums=('5d2890578f266557d48f101447936eb9994531adfb6f91d13af21c1a83720132'
+            '4704f135e4d8251bc5e99ad86b1c2facb348c6cbe61a027bcf0e52c005a4c943'
+            'a16cc26d89bb685ad640efe7a6abd7045940c2f0bc496f282e623ec1c9e6e38d'
+            '6dfbeafd35501da158906f860603dfad04bed14b8bca8713f1cd42bd68a78624'
+            'dc562721ed6567d9303cf1c7cf095afe376bf85445fad6e5a6ff3bc6cda5e38c'
+            '12a6d288c08da42640eb607e4486eb18e2ff2e1cd987ddecacc0b4d33198b48f'
+            '3adba66e2cccddb6bb5c5c2b42e7ee098e28350530046a2bc0d7946527bd329e'
+            'bd1d79efa63c8060f3d46ef60224c3aa51095c331c0825ce482e2d9683964ed9'
+            '46b3d9b601b79303c387511a218f15e9c847c19489878d8880de045ac0e04d21'
+            '93ded6dacb1a3d2893b34cf296e4768eaafd5551b9fe27ab615bf9f8e028ce3e'
+            'f4dfe3ecec6d4538f6f050812d1846c83aa3438510a1ccf38dae3ce5c36b4471'
+            'bafdf96d0a1e66b5e5380642272c328b28d52e7d97b4e5665d779955e9296d94'
+            '18ee82d45ded20b913fbdc17ba3db379b45c8e3fe35977c18a4bb54005426fd7')
+
+package_coolos-config() {
+  pkgdesc='Upgradeable CoolOS system and service policy'
+  depends=('systemd')
+  backup=('etc/docker/daemon.json')
+
+  install -Dm644 daemon.json "$pkgdir/etc/docker/daemon.json"
+  install -Dm644 bpftune-support.conf \
+    "$pkgdir/usr/lib/systemd/system/bpftune.service.d/10-coolos-support.conf"
+  install -Dm644 50-coolos.preset \
+    "$pkgdir/usr/lib/systemd/system-preset/50-coolos.preset"
+  install -Dm644 50-coolos-user.preset \
+    "$pkgdir/usr/lib/systemd/user-preset/50-coolos.preset"
+}
+
+package_coolos-niri-settings() {
+  pkgdesc='Generic CoolOS Niri and Noctalia settings'
+  depends=(
+    'coolos-config'
+    'adw-gtk-theme'
+    'cachyos-alacritty-config'
+    'capitaine-cursors'
+    'firefox'
+    'gnome-keyring'
+    'nautilus'
+    'niri'
+    'noctalia'
+    'noto-fonts'
+    'noto-fonts-emoji'
+    'uwsm'
+    'wl-clipboard'
+    'xdg-desktop-portal-gnome'
+    'xdg-desktop-portal-gtk'
+    'xwayland-satellite'
+  )
+  provides=('cachyos-desktop-settings')
+  conflicts=(
+    'cachyos-desktop-settings'
+    'cachyos-niri-noctalia'
+  )
+  replaces=('cachyos-niri-noctalia')
+
+  local niri_dir="$pkgdir/etc/skel/.config/niri"
+  install -Dm644 config.kdl "$niri_dir/config.kdl"
+  install -Dm644 animation.kdl "$niri_dir/cfg/animation.kdl"
+  install -Dm644 autostart.kdl "$niri_dir/cfg/autostart.kdl"
+  install -Dm644 input.kdl "$niri_dir/cfg/input.kdl"
+  install -Dm644 keybinds.kdl "$niri_dir/cfg/keybinds.kdl"
+  install -Dm644 layout.kdl "$niri_dir/cfg/layout.kdl"
+  install -Dm644 misc.kdl "$niri_dir/cfg/misc.kdl"
+  install -Dm644 rules.kdl "$niri_dir/cfg/rules.kdl"
+  install -Dm644 noctalia.toml \
+    "$pkgdir/etc/skel/.config/noctalia/config.toml"
+}

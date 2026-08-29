@@ -1,0 +1,15 @@
+Add 'pacman' to electron-builder's Linux target list.
+
+Upstream only configures AppImage/deb/rpm. Generate a pacman archive so the
+package can reuse electron-builder's desktop entry and complete icon set.
+
+--- a/packages/desktop/electron-builder.config.ts
++++ b/packages/desktop/electron-builder.config.ts
+@@ -114,6 +114,6 @@ const getBase = (appId: string): Configuration => ({
+         StartupWMClass: appId,
+       },
+     },
+-    target: ["AppImage", "deb", "rpm"],
++    target: ["AppImage", "deb", "rpm", "pacman"],
+   },
+ })

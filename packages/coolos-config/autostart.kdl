@@ -1,0 +1,2 @@
+spawn-at-startup "noctalia"
+spawn-at-startup "/usr/bin/gnome-keyring-daemon" "--start" "--components=secrets"

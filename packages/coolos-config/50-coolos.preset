@@ -1,0 +1,8 @@
+enable firewalld.service
+enable bluetooth.service
+enable ananicy-cpp.service
+enable bpftune.service
+enable docker.service
+enable virtqemud.socket
+enable pkgfile-update.timer
+disable systemd-oomd.service

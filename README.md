@@ -19,7 +19,10 @@ Git.
 ## Packages
 
 - `cachyos-calamares-next`: CoolOS development build of Calamares.
+- `coolos-config`: Upgradeable CoolOS system and service policy.
 - `coolos-keyring`: Pacman trust material for the repository signing key.
+- `coolos-niri-settings`: Generic Niri and Noctalia defaults for CoolOS.
+- `opencode-desktop`: OpenCode desktop app built against system Electron.
 
 ## Publishing
 
