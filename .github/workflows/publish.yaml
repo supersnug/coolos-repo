@@ -1,0 +1,112 @@
+name: Publish repository
+
+on:
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container:
+      image: archlinux:base-devel
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Prepare build environment
+        run: |
+          pacman-key --init
+          pacman-key --recv-keys F3B607488DB35A47 --keyserver keyserver.ubuntu.com
+          pacman-key --lsign-key F3B607488DB35A47
+          sed -i '/^\[core\]$/i[cachyos]\nServer = https://mirror.cachyos.org/repo/$arch/$repo\n' /etc/pacman.conf
+          pacman -Syu --needed --noconfirm git sudo
+          useradd --create-home builder
+          printf 'builder ALL=(ALL) NOPASSWD: ALL\n' > /etc/sudoers.d/builder
+          chown -R builder:builder "$GITHUB_WORKSPACE"
+
+      - name: Build packages
+        run: |
+          mkdir -p public/x86_64
+          for recipe in packages/*/PKGBUILD; do
+            package_dir="$(dirname "$recipe")"
+            runuser -u builder -- bash -c "cd '$GITHUB_WORKSPACE/$package_dir' && makepkg --syncdeps --noconfirm"
+            cp "$package_dir"/*.pkg.tar.zst public/x86_64/
+          done
+
+      - name: Verify portable Calamares build
+        run: |
+          package="$(find public/x86_64 -name 'cachyos-calamares-next-*.pkg.tar.zst' -print -quit)"
+          library_path="$(bsdtar -tf "$package" | grep -E '^usr/lib/libcalamaresui\.so\.[0-9]+\.[0-9]+\.[0-9]+$')"
+          test -n "$library_path"
+          bsdtar -xOf "$package" "$library_path" > /tmp/libcalamaresui.so
+          readelf -n /tmp/libcalamaresui.so | tee /tmp/libcalamaresui.notes
+          grep -q 'x86 ISA used: x86-64-baseline' /tmp/libcalamaresui.notes
+          ! grep -Eq 'x86-64-v[234]' /tmp/libcalamaresui.notes
+
+      - name: Sign repository
+        env:
+          COOLOS_GPG_SIGNING_KEY: ${{ secrets.COOLOS_GPG_SIGNING_KEY }}
+          COOLOS_GPG_SIGNING_PASSPHRASE: ${{ secrets.COOLOS_GPG_SIGNING_PASSPHRASE }}
+        run: |
+          test -n "$COOLOS_GPG_SIGNING_KEY"
+          test -n "$COOLOS_GPG_SIGNING_PASSPHRASE"
+          printf '%s' "$COOLOS_GPG_SIGNING_KEY" | gpg --batch --import
+          signing_fingerprint="$(gpg --batch --with-colons --list-secret-keys | awk -F: '$1 == "fpr" { print $10; exit }')"
+          test -n "$signing_fingerprint"
+
+          for package in public/x86_64/*.pkg.tar.zst; do
+            gpg --batch --yes --pinentry-mode loopback \
+              --passphrase-fd 3 --local-user "$signing_fingerprint" \
+              --detach-sign "$package" 3<<< "$COOLOS_GPG_SIGNING_PASSPHRASE"
+          done
+
+          repo-add \
+            public/x86_64/coolos.db.tar.gz \
+            public/x86_64/*.pkg.tar.zst
+          for database in public/x86_64/coolos.db.tar.gz public/x86_64/coolos.files.tar.gz; do
+            gpg --batch --yes --pinentry-mode loopback \
+              --passphrase-fd 3 --local-user "$signing_fingerprint" \
+              --detach-sign "$database" 3<<< "$COOLOS_GPG_SIGNING_PASSPHRASE"
+          done
+          rm public/x86_64/coolos.db public/x86_64/coolos.files
+          cp public/x86_64/coolos.db.tar.gz public/x86_64/coolos.db
+          cp public/x86_64/coolos.db.tar.gz.sig public/x86_64/coolos.db.sig
+          cp public/x86_64/coolos.files.tar.gz public/x86_64/coolos.files
+          cp public/x86_64/coolos.files.tar.gz.sig public/x86_64/coolos.files.sig
+
+      - name: Create repository index
+        run: |
+          printf '%s\n' \
+            '<!doctype html>' \
+            '<html lang="en"><meta charset="utf-8"><title>CoolOS Repository</title>' \
+            '<h1>CoolOS Package Repository</h1>' \
+            '<p>Use <code>https://coolos-repo.sarulean.com/$arch</code> as the Pacman server.</p>' \
+            '</html>' > public/index.html
+          printf '%s\n' 'coolos-repo.sarulean.com' > public/CNAME
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: public
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Deploy Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

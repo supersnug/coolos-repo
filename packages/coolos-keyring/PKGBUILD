@@ -1,0 +1,24 @@
+# Maintainer: supersnug
+# shellcheck shell=bash disable=SC2034
+
+pkgname=coolos-keyring
+pkgver=20260828
+pkgrel=1
+pkgdesc='CoolOS package signing keyring'
+arch=('any')
+url='https://github.com/supersnug/coolos-repo'
+license=('GPL-3.0-or-later')
+install=coolos-keyring.install
+source=(
+  coolos.gpg
+  coolos-revoked
+  coolos-trusted
+  coolos-keyring.install
+)
+sha256sums=('SKIP' 'SKIP' 'SKIP' 'SKIP')
+
+package() {
+  install -Dm644 coolos.gpg "${pkgdir}/usr/share/pacman/keyrings/coolos.gpg"
+  install -Dm644 coolos-revoked "${pkgdir}/usr/share/pacman/keyrings/coolos-revoked"
+  install -Dm644 coolos-trusted "${pkgdir}/usr/share/pacman/keyrings/coolos-trusted"
+}
