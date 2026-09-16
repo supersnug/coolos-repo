@@ -54,11 +54,11 @@ jobs:
 
       - name: Verify OpenCode desktop package
         run: |
-          package="$(find public/x86_64 -name 'opencode-desktop-1.18.29-1-x86_64.pkg.tar.zst' -print -quit)"
+          package="$(find public/x86_64 -name 'opencode-desktop-2.0.5-1-x86_64.pkg.tar.zst' -print -quit)"
           test -n "$package"
           bsdtar -xOf "$package" .PKGINFO > /tmp/opencode-desktop.pkginfo
-          grep -qx 'pkgver = 1.18.29-1' /tmp/opencode-desktop.pkginfo
-          grep -qx 'depend = opencode=1.18.29' /tmp/opencode-desktop.pkginfo
+          grep -qx 'pkgver = 2.0.5-1' /tmp/opencode-desktop.pkginfo
+          grep -qx 'depend = opencode=2.0.5' /tmp/opencode-desktop.pkginfo
           grep -qx 'optdepend = nodejs: needed only by npm CLI helpers bundled in node_modules' /tmp/opencode-desktop.pkginfo
           grep -qx 'depend = electron42' /tmp/opencode-desktop.pkginfo
           ! bsdtar -tf "$package" | grep -Eq '\.musl\.node$|/-musl[^/]*/'
@@ -66,6 +66,16 @@ jobs:
             jq -e '.desktopName == "opencode-desktop"'
           bsdtar -xOf "$package" usr/share/applications/opencode-desktop.desktop |
             grep -qx 'Exec=opencode-desktop %U'
+          mkdir -p /tmp/opencode-desktop-main
+          bsdtar -xf "$package" -C /tmp/opencode-desktop-main usr/lib/opencode-desktop/out/main
+          grep -rq '/usr/bin/opencode' /tmp/opencode-desktop-main
+          ! grep -rEq '\.isPackaged' /tmp/opencode-desktop-main --include='*.js'
+
+      - name: Verify settings upgrade policy
+        run: |
+          bash tests/settings-upgrade.sh \
+            public/x86_64/coolos-config-1.0.0-2-any.pkg.tar.zst \
+            public/x86_64/coolos-niri-settings-1.0.0-2-any.pkg.tar.zst
 
       - name: Verify portable Calamares build
         run: |

@@ -24,6 +24,16 @@ Git.
 - `coolos-niri-settings`: Generic Niri and Noctalia defaults for CoolOS.
 - `opencode-desktop`: OpenCode desktop app built against system Electron.
 
+OpenCode Desktop 2 uses the version-locked `/usr/bin/opencode` package for its
+V2 background service. It does not bundle or stage another CLI. User configuration
+is owned by OpenCode, not by these packages; see the
+[V2 config guide](https://opencode.ai/v2/docs/config) and
+[migration guide](https://opencode.ai/v2/docs/migrate-v1).
+
+The installer explicitly selects `coolos-niri-settings` for Niri. This package
+does not automatically replace CachyOS settings on a system upgrade. Conflicts
+with other desktop settings remain intentional to prevent overlapping files.
+
 ## Publishing
 
 Publishing requires the `COOLOS_GPG_SIGNING_KEY` and

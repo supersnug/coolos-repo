@@ -7,7 +7,7 @@ pkgname=(
   'coolos-niri-settings'
 )
 pkgver=1.0.0
-pkgrel=1
+pkgrel=2
 arch=('any')
 url='https://github.com/supersnug/coolos-repo'
 license=('GPL-3.0-only')
@@ -79,7 +79,6 @@ package_coolos-niri-settings() {
     'cachyos-desktop-settings'
     'cachyos-niri-noctalia'
   )
-  replaces=('cachyos-niri-noctalia')
 
   local niri_dir="$pkgdir/etc/skel/.config/niri"
   install -Dm644 config.kdl "$niri_dir/config.kdl"

@@ -1,0 +1,70 @@
+Use the version-locked distribution CLI instead of bundling and staging a second
+copy. System Electron's resourcesPath points at Electron, not this application.
+
+--- a/packages/desktop/scripts/prebuild.ts
++++ b/packages/desktop/scripts/prebuild.ts
+@@ -1,18 +1,9 @@
+ #!/usr/bin/env bun
+ import { $ } from "bun"
+ 
+-import { copyBuiltCliToResources, downloadCliToResources, resolveChannel } from "./utils"
++import { resolveChannel } from "./utils"
+ 
+ const channel = resolveChannel()
+-if (channel === "prod" && !Bun.env.OPENCODE_CLI_DIST) {
+-  throw new Error("OPENCODE_CLI_DIST is required for production desktop builds")
+-}
+ 
+ await $`bun ./scripts/copy-icons.ts ${channel}`
+ await $`bun ./scripts/copy-metainfo.ts ${channel}`
+-
+-if (channel === "dev") await downloadCliToResources()
+-if ((channel === "beta" || channel === "prod") && Bun.env.OPENCODE_CLI_DIST) {
+-  await copyBuiltCliToResources(Bun.env.OPENCODE_CLI_DIST)
+-}
+-if (channel === "beta" && !Bun.env.OPENCODE_CLI_DIST) await downloadCliToResources("beta")
+--- a/packages/desktop/electron-builder.config.ts
++++ b/packages/desktop/electron-builder.config.ts
+@@ -1,5 +1,4 @@
+ import { execFile } from "node:child_process"
+-import { stat } from "node:fs/promises"
+ import path from "node:path"
+ import { fileURLToPath } from "node:url"
+ import { promisify } from "node:util"
+@@ -89,21 +88,7 @@
+     "!**/node_modules/js-yaml/dist/{js-yaml.js,js-yaml.min.js,*.map}",
+     "!**/node_modules/js-yaml/bin{,/**/*}",
+   ],
+-  extraResources: [
+-    {
+-      from: "resources/",
+-      to: "",
+-      filter: ["opencode-cli", "opencode-cli.exe"],
+-    },
+-  ],
+-  afterPack: async (context) => {
+-    const cli = path.join(
+-      context.packager.getResourcesDir(context.appOutDir),
+-      context.electronPlatformName === "win32" ? "opencode-cli.exe" : "opencode-cli",
+-    )
+-    const file = await stat(cli)
+-    if (!file.isFile() || file.size === 0) throw new Error(`Bundled CLI must be a non-empty file: ${cli}`)
+-  },
++  extraResources: [],
+   mac: {
+     category: "public.app-category.developer-tools",
+     icon: `resources/icons/icon.icns`,
+--- a/packages/desktop/src/main/service/desktop-cli.ts
++++ b/packages/desktop/src/main/service/desktop-cli.ts
+@@ -73,6 +73,11 @@
+ })
+ 
+ const resolveBundledCli = Effect.fn("DesktopCli.resolveBundled")(function* (isolated: boolean) {
++  if (process.platform === "linux") {
++    const binary = "/usr/bin/opencode"
++    const version = parseCliVersion(yield* run(binary, ["--version"]))
++    return { version, binary, command: [binary] }
++  }
+   const path = yield* Path.Path
+   const paths = yield* DesktopPaths.resolve
+   const bundled = app.isPackaged
