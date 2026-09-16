@@ -5,6 +5,14 @@
 pkgname=opencode-desktop
 pkgver=2.0.5
 pkgrel=2
+_cpu_target=${COOLOS_CPU_TARGET:-x86-64}
+case $_cpu_target in
+  x86-64) ;;
+  x86-64-v3) pkgrel+=.1 ;;
+  x86-64-v4) pkgrel+=.2 ;;
+  znver4) pkgrel+=.3 ;;
+  *) printf 'Unsupported CPU target: %s\n' "$_cpu_target" >&2; exit 1 ;;
+esac
 pkgdesc='OpenCode desktop app built from source for system Electron'
 arch=('x86_64')
 url='https://github.com/anomalyco/opencode'
@@ -63,8 +71,10 @@ build() {
   export ELECTRON_BUILDER_CACHE="$srcdir/.cache/electron-builder"
 
   # Native addons must not inherit the build runner's CPU instruction set.
-  export CFLAGS+=' -march=x86-64 -mtune=generic'
-  export CXXFLAGS+=' -march=x86-64 -mtune=generic'
+  local tune=generic
+  [[ $_cpu_target != znver4 ]] || tune=znver4
+  export CFLAGS+=" -march=$_cpu_target -mtune=$tune"
+  export CXXFLAGS+=" -march=$_cpu_target -mtune=$tune"
 
   bun install
   bun run --cwd packages/desktop build

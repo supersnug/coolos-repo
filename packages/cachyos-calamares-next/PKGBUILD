@@ -4,6 +4,14 @@
 pkgname=cachyos-calamares-next
 pkgver=3.4.2.r0.g0000000
 pkgrel=1
+_cpu_target=${COOLOS_CPU_TARGET:-x86-64}
+case $_cpu_target in
+  x86-64) ;;
+  x86-64-v3) pkgrel+=.1 ;;
+  x86-64-v4) pkgrel+=.2 ;;
+  znver4) pkgrel+=.3 ;;
+  *) printf 'Unsupported CPU target: %s\n' "$_cpu_target" >&2; exit 1 ;;
+esac
 pkgdesc='CoolOS development build of the CachyOS Calamares installer'
 arch=('x86_64')
 license=('GPL-3.0-or-later')
@@ -52,7 +60,7 @@ makedepends=(
   python-unidecode
   qt6-tools
 )
-_commit=2fc492b23c76515060eb189a627bfa0867ac5b0b
+_commit=f3078b4814d6cd457ebe0264ebc3ba301d145ba3
 source=("calamares::git+https://github.com/supersnug/CoolOS-Installer.git#commit=${_commit}")
 sha256sums=('SKIP')
 options=('!emptydirs')
@@ -65,8 +73,12 @@ pkgver() {
 build() {
   cd calamares || return
 
-  export CFLAGS+=' -march=x86-64 -mtune=generic'
-  export CXXFLAGS+=' -fPIC -march=x86-64 -mtune=generic'
+  python -m unittest discover -s tests -p test_coolos_repositories.py
+
+  local tune=generic
+  [[ $_cpu_target != znver4 ]] || tune=znver4
+  export CFLAGS+=" -march=$_cpu_target -mtune=$tune"
+  export CXXFLAGS+=" -fPIC -march=$_cpu_target -mtune=$tune"
 
   cmake -S . -B build \
     -GNinja \

@@ -9,13 +9,24 @@ test -f "$addon"
 
 # CI CPUs may support instructions unavailable on users' machines. GCC's ELF
 # ISA notes catch such builds even when the runtime load succeeds on the runner.
-readelf -n "$addon" > "$tmp/isa-notes"
-cat "$tmp/isa-notes"
-grep -q 'x86 ISA used: x86-64-baseline' "$tmp/isa-notes"
-if grep -Eq 'x86-64-v[234]' "$tmp/isa-notes"; then
-  echo 'FAIL: packaged extractor requires an ISA above baseline x86-64' >&2
-  exit 1
-fi
+bash "$(dirname "$0")/cpu-isa.sh" "$addon" "${2:-x86-64}"
+
+# Never execute a higher-tier module on an incompatible build runner.
+case ${2:-x86-64} in
+  x86-64) ;;
+  x86-64-v3|x86-64-v4)
+    if ! /lib/ld-linux-x86-64.so.2 --help | grep -q "$2 (supported, searched)"; then
+      echo "PASS: ISA checked; $2 runtime check requires compatible hardware"
+      exit 0
+    fi
+    ;;
+  znver4)
+    if ! gcc -march=native -Q --help=target | grep -Eq 'march=.*znver[45]'; then
+      echo 'PASS: ISA checked; Zen 4 runtime check requires compatible hardware'
+      exit 0
+    fi
+    ;;
+esac
 
 ELECTRON_RUN_AS_NODE=1 /usr/lib/electron42/electron -e '
   const addon = require(process.argv[1]);
