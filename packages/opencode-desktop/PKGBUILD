@@ -4,7 +4,7 @@
 
 pkgname=opencode-desktop
 pkgver=2.0.5
-pkgrel=1
+pkgrel=2
 pkgdesc='OpenCode desktop app built from source for system Electron'
 arch=('x86_64')
 url='https://github.com/anomalyco/opencode'
@@ -61,6 +61,10 @@ build() {
 
   export OPENCODE_CHANNEL=prod
   export ELECTRON_BUILDER_CACHE="$srcdir/.cache/electron-builder"
+
+  # Native addons must not inherit the build runner's CPU instruction set.
+  export CFLAGS+=' -march=x86-64 -mtune=generic'
+  export CXXFLAGS+=' -march=x86-64 -mtune=generic'
 
   bun install
   bun run --cwd packages/desktop build
