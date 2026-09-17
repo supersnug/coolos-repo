@@ -60,7 +60,7 @@ makedepends=(
   python-unidecode
   qt6-tools
 )
-_commit=f3078b4814d6cd457ebe0264ebc3ba301d145ba3
+_commit=feea3370ff7b004b8b737e85c21902ba7c643384
 source=("calamares::git+https://github.com/supersnug/CoolOS-Installer.git#commit=${_commit}")
 sha256sums=('SKIP')
 options=('!emptydirs')

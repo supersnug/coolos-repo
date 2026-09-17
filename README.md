@@ -8,7 +8,7 @@ Repository URL:
 ```ini
 [coolos]
 SigLevel = Required DatabaseRequired
-Server = https://coolos-repo.sarulean.com/$arch
+Server = https://coolos-repo.sarulean.com/$repo/$arch
 ```
 
 Packages are rebuilt from pinned sources and manually published through the
@@ -56,24 +56,24 @@ A v3 system should place these sections above the CachyOS/Arch repositories:
 
 ```ini
 [coolos-v3]
-Server = https://coolos-repo.sarulean.com/$arch/coolos-v3
+Server = https://coolos-repo.sarulean.com/$repo/$arch
 
 [coolos]
-Server = https://coolos-repo.sarulean.com/$arch
+Server = https://coolos-repo.sarulean.com/$repo/$arch
 ```
 
 If v4 is supported, prepend:
 
 ```ini
 [coolos-v4]
-Server = https://coolos-repo.sarulean.com/$arch/coolos-v4
+Server = https://coolos-repo.sarulean.com/$repo/$arch
 ```
 
 For compatible AMD Zen 4/5 CPUs, prepend this above v4:
 
 ```ini
 [coolos-znver4]
-Server = https://coolos-repo.sarulean.com/$arch/coolos-znver4
+Server = https://coolos-repo.sarulean.com/$repo/$arch
 ```
 
 Following [CachyOS's approach](https://wiki.cachyos.org/features/optimized_repos/),
@@ -98,6 +98,12 @@ before a single signed repository deployment. ISA checks run for every tier;
 native-module execution checks run only when the build CPU supports that tier.
 
 ## Publishing
+
+All tiers use the same server template: `https://coolos-repo.sarulean.com/$repo/$arch`.
+Pacman expands `$repo` from the section name. This replaces the pre-release
+`/x86_64/` and `/x86_64/coolos-{v3,v4,znver4}/` URLs. Existing development
+installations must update their CoolOS `Server` lines to the new template;
+repository names and signing trust stay the same.
 
 Publishing requires the `COOLOS_GPG_SIGNING_KEY` and
 `COOLOS_GPG_SIGNING_PASSPHRASE` repository secrets. The key secret must contain

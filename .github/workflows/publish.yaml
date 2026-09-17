@@ -21,19 +21,19 @@ jobs:
         include:
           - target: x86-64
             repo: coolos
-            directory: x86_64
+            directory: coolos/x86_64
             release: '2'
           - target: x86-64-v3
             repo: coolos-v3
-            directory: x86_64/coolos-v3
+            directory: coolos-v3/x86_64
             release: '2.1'
           - target: x86-64-v4
             repo: coolos-v4
-            directory: x86_64/coolos-v4
+            directory: coolos-v4/x86_64
             release: '2.2'
           - target: znver4
             repo: coolos-znver4
-            directory: x86_64/coolos-znver4
+            directory: coolos-znver4/x86_64
             release: '2.3'
     env:
       COOLOS_CPU_TARGET: ${{ matrix.target }}
@@ -110,8 +110,8 @@ jobs:
         if: matrix.target == 'x86-64'
         run: |
           bash tests/settings-upgrade.sh \
-            public/x86_64/coolos-config-1.0.0-2-any.pkg.tar.zst \
-            public/x86_64/coolos-niri-settings-1.0.0-2-any.pkg.tar.zst
+            public/coolos/x86_64/coolos-config-1.0.0-2-any.pkg.tar.zst \
+            public/coolos/x86_64/coolos-niri-settings-1.0.0-2-any.pkg.tar.zst
 
       - name: Verify portable Calamares build
         run: |
@@ -163,8 +163,7 @@ jobs:
           done < <(find public -name '*.pkg.tar.zst' -print0)
 
           for repo in coolos coolos-v3 coolos-v4 coolos-znver4; do
-            directory=public/x86_64
-            [[ "$repo" == coolos ]] || directory+="/$repo"
+            directory="public/$repo/x86_64"
             repo-add "$directory/$repo.db.tar.gz" "$directory/"*.pkg.tar.zst
             for database in "$directory/$repo.db.tar.gz" "$directory/$repo.files.tar.gz"; do
               gpg --batch --yes --pinentry-mode loopback \
@@ -184,7 +183,7 @@ jobs:
             '<!doctype html>' \
             '<html lang="en"><meta charset="utf-8"><title>CoolOS Repository</title>' \
             '<h1>CoolOS Package Repository</h1>' \
-            '<p>Use <code>https://coolos-repo.sarulean.com/$arch</code> as the Pacman server.</p>' \
+            '<p>Use <code>https://coolos-repo.sarulean.com/$repo/$arch</code> as the Pacman server.</p>' \
             '</html>' > public/index.html
           printf '%s\n' 'coolos-repo.sarulean.com' > public/CNAME
 
