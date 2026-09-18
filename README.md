@@ -95,7 +95,9 @@ to a CPU that cannot run its installed optimized packages.
 Build recipes default to portable x86-64. CI selects other tiers through
 `COOLOS_CPU_TARGET`; every tier builds in a separate job and all four must pass
 before a single signed repository deployment. ISA checks run for every tier;
-native-module execution checks run only when the build CPU supports that tier.
+Desktop's remaining native module in 2.0.8 is upstream's portable PTY prebuild;
+every tier must pass a shell-spawn/output check under system Electron. Unexpected
+native modules fail validation so their CPU requirements can be reviewed.
 
 ## Publishing
 

@@ -1,35 +1,40 @@
 #!/usr/bin/env bash
-# Load the actual packaged addon and reject CPU-specific compiler output.
+# Exercise the packaged PTY addon under the same Electron runtime as Desktop.
 set -euo pipefail
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
 bsdtar -xf "${1:?Pass the Desktop package archive}" -C "$tmp" usr/lib/opencode-desktop/node_modules
-addon="$tmp/usr/lib/opencode-desktop/node_modules/msgpackr-extract/build/Release/extract.node"
+modules="$tmp/usr/lib/opencode-desktop/node_modules"
+pty="$modules/@lydell/node-pty-linux-x64"
+addon="$pty/prebuilds/linux-x64/pty.node"
 test -f "$addon"
+# 2.0.8 removed MessagePack. Fail if its formerly CPU-specific addon returns,
+# or another native dependency appears without a corresponding runtime check.
+test ! -d "$modules/msgpackr-extract"
+while IFS= read -r -d '' native; do
+  if [[ "$native" != "$addon" ]]; then
+    echo "FAIL: untested native addon: $native" >&2
+    exit 1
+  fi
+done < <(find "$modules" -name '*.node' -print0)
 
-# CI CPUs may support instructions unavailable on users' machines. GCC's ELF
-# ISA notes catch such builds even when the runtime load succeeds on the runner.
-bash "$(dirname "$0")/cpu-isa.sh" "$addon" "${2:-x86-64}"
-
-# Never execute a higher-tier module on an incompatible build runner.
-case ${2:-x86-64} in
-  x86-64) ;;
-  x86-64-v3|x86-64-v4)
-    if ! /lib/ld-linux-x86-64.so.2 --help | grep -q "$2 (supported, searched)"; then
-      echo "PASS: ISA checked; $2 runtime check requires compatible hardware"
-      exit 0
-    fi
-    ;;
-  znver4)
-    if ! gcc -march=native -Q --help=target | grep -Eq 'march=.*znver[45]'; then
-      echo 'PASS: ISA checked; Zen 4 runtime check requires compatible hardware'
-      exit 0
-    fi
-    ;;
-esac
+# Upstream's PTY prebuild is shared across tiers; some prebuilds omit ISA notes.
+notes=$(readelf -n "$addon")
+if grep -q 'x86 ISA used:' <<< "$notes"; then
+  bash "$(dirname "$0")/cpu-isa.sh" "$addon" x86-64
+fi
 
 ELECTRON_RUN_AS_NODE=1 /usr/lib/electron42/electron -e '
-  const addon = require(process.argv[1]);
-  if (typeof addon.extractStrings !== "function") throw new Error("Missing native extractor");
-  console.log("PASS: packaged native extractor loaded under Electron");
-' "$addon"
+  const pty = require(process.argv[1]);
+  const child = pty.spawn("/bin/sh", ["-c", "printf coolos-pty-ok"], {
+    name: "xterm", cols: 80, rows: 24, env: process.env,
+  });
+  let output = "";
+  const timer = setTimeout(() => { child.kill(); process.exit(1); }, 10000);
+  child.onData(data => { output += data; });
+  child.onExit(({exitCode}) => {
+    clearTimeout(timer);
+    if (exitCode !== 0 || !output.includes("coolos-pty-ok")) process.exit(1);
+    console.log("PASS: packaged PTY spawned a shell and returned output under Electron");
+  });
+' "$pty/lib/index.js"
