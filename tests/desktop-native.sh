@@ -24,7 +24,7 @@ if grep -q 'x86 ISA used:' <<< "$notes"; then
   bash "$(dirname "$0")/cpu-isa.sh" "$addon" x86-64
 fi
 
-ELECTRON_RUN_AS_NODE=1 /usr/lib/electron42/electron -e '
+ELECTRON_RUN_AS_NODE=1 "${ELECTRON_BINARY:-/usr/lib/electron44/electron}" -e '
   const pty = require(process.argv[1]);
   const child = pty.spawn("/bin/sh", ["-c", "printf coolos-pty-ok"], {
     name: "xterm", cols: 80, rows: 24, env: process.env,

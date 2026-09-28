@@ -31,7 +31,7 @@ copy. System Electron's resourcesPath points at Electron, not this application.
  import path from "node:path"
  import { fileURLToPath } from "node:url"
  import { promisify } from "node:util"
-@@ -89,21 +88,7 @@
+@@ -92,23 +91,7 @@
      "!**/node_modules/js-yaml/dist/{js-yaml.js,js-yaml.min.js,*.map}",
      "!**/node_modules/js-yaml/bin{,/**/*}",
    ],
@@ -39,7 +39,7 @@ copy. System Electron's resourcesPath points at Electron, not this application.
 -    {
 -      from: "resources/",
 -      to: "",
--      filter: ["opencode-cli", "opencode-cli.exe"],
+-      filter: ["opencode-cli", "opencode-cli.exe", "opencode-cli.version"],
 -    },
 -  ],
 -  afterPack: async (context) => {
@@ -49,6 +49,8 @@ copy. System Electron's resourcesPath points at Electron, not this application.
 -    )
 -    const file = await stat(cli)
 -    if (!file.isFile() || file.size === 0) throw new Error(`Bundled CLI must be a non-empty file: ${cli}`)
+-    const version = path.join(path.dirname(cli), "opencode-cli.version")
+-    if ((await stat(version)).size === 0) throw new Error(`Bundled CLI version must be a non-empty file: ${version}`)
 -  },
 +  extraResources: [],
    mac: {
