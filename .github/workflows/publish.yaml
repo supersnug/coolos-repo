@@ -84,11 +84,11 @@ jobs:
 
       - name: Verify OpenCode desktop package
         run: |
-          package="public/$REPO_DIRECTORY/opencode-desktop-2.0.18-$DESKTOP_RELEASE-x86_64.pkg.tar.zst"
+          package="public/$REPO_DIRECTORY/opencode-desktop-2.0.22-$DESKTOP_RELEASE-x86_64.pkg.tar.zst"
           test -f "$package"
           bsdtar -xOf "$package" .PKGINFO > /tmp/opencode-desktop.pkginfo
-          grep -qx "pkgver = 2.0.18-$DESKTOP_RELEASE" /tmp/opencode-desktop.pkginfo
-          grep -qx 'depend = opencode=2.0.18' /tmp/opencode-desktop.pkginfo
+          grep -qx "pkgver = 2.0.22-$DESKTOP_RELEASE" /tmp/opencode-desktop.pkginfo
+          grep -qx 'depend = opencode=2.0.22' /tmp/opencode-desktop.pkginfo
           grep -qx 'optdepend = nodejs: needed only by npm CLI helpers bundled in node_modules' /tmp/opencode-desktop.pkginfo
           grep -qx 'depend = electron44' /tmp/opencode-desktop.pkginfo
           bsdtar -tf "$package" > /tmp/desktop-files
@@ -104,7 +104,7 @@ jobs:
 
       - name: Verify portable Desktop native module
         run: |
-          bash tests/desktop-native.sh "public/$REPO_DIRECTORY/opencode-desktop-2.0.18-$DESKTOP_RELEASE-x86_64.pkg.tar.zst" "$COOLOS_CPU_TARGET"
+          bash tests/desktop-native.sh "public/$REPO_DIRECTORY/opencode-desktop-2.0.22-$DESKTOP_RELEASE-x86_64.pkg.tar.zst" "$COOLOS_CPU_TARGET"
 
       - name: Verify settings upgrade policy
         if: matrix.target == 'x86-64'
