@@ -3,7 +3,7 @@
 # shellcheck shell=bash disable=SC2034,SC2154
 
 pkgname=opencode-desktop
-pkgver=2.0.23
+pkgver=2.0.24
 pkgrel=1
 _cpu_target=${COOLOS_CPU_TARGET:-x86-64}
 case $_cpu_target in
@@ -22,7 +22,7 @@ depends=(
   'gcc-libs'
   'glibc'
   'hicolor-icon-theme'
-  'opencode=2.0.23'
+  'opencode=2.0.24'
 )
 makedepends=(
   'bun'
@@ -40,17 +40,17 @@ conflicts=(
   'opencode-desktop-electron-bin'
 )
 options=('!strip' '!debug')
-_commit=0fd7e2829449b052abf0078666669302923d77af
+_commit=e7a34f09bfd9134dfade5a8ddb843f7030bc9a69
 source=(
   "$pkgname::git+https://github.com/anomalyco/opencode.git#commit=${_commit}"
   "$pkgname.sh"
   'enable-pacman-target.patch'
   'use-system-cli.patch'
 )
-sha256sums=('d1c6b5d0eb50c125215a3cadc850c1c0e253696cb1f3bfc4e5f2b05ea0a2923a'
+sha256sums=('5817aae4be9f30bb26d6bde48b4ddfe6b58938042502e193f81dc88f4c7884ea'
             '5474a17cc16bd58bc52117f8cc49c319e7c6861863873fbb8a86953794ba9ef1'
             '93dcb9ec670404965d0420e84d89dc1d130b3c6ab26df87026af531b9e979daa'
-            '7bee02a02bd67927d56b19ac883f8042f0f735a45eb5bf861f549e0a72027ae2')
+            '5500949b318e9fa896a01647d0c3c995413db0c54e4b7299ddd9c95f685f66d9')
 
 prepare() {
   cd "$srcdir/$pkgname" || return
