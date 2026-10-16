@@ -1,6 +1,5 @@
 Use the version-locked distribution CLI instead of bundling and staging a second
 copy. System Electron's resourcesPath points at Electron, not this application.
-
 --- a/packages/desktop/scripts/prebuild.ts
 +++ b/packages/desktop/scripts/prebuild.ts
 @@ -1,22 +1,11 @@
@@ -11,17 +10,15 @@ copy. System Electron's resourcesPath points at Electron, not this application.
 +import { resolveChannel } from "./utils"
  
  const channel = resolveChannel()
--
-+
+ 
 -if (channel === "prod" && !Bun.env.OPENCODE_CLI_DIST) {
 -  throw new Error("OPENCODE_CLI_DIST is required for production desktop builds")
 -}
- 
+-
  await $`bun ./scripts/copy-icons.ts ${channel}`
--
-+
+ 
  await $`bun ./scripts/copy-metainfo.ts ${channel}`
--
+ 
 -if (channel === "dev") await downloadCliToResources()
 -
 -if ((channel === "beta" || channel === "prod") && Bun.env.OPENCODE_CLI_DIST) {
@@ -31,43 +28,67 @@ copy. System Electron's resourcesPath points at Electron, not this application.
 -if (channel === "beta" && !Bun.env.OPENCODE_CLI_DIST) await downloadCliToResources("beta")
 --- a/packages/desktop/electron-builder.config.ts
 +++ b/packages/desktop/electron-builder.config.ts
-@@ -1,5 +1,4 @@
- import { execFile } from "node:child_process"
--import { stat } from "node:fs/promises"
- import path from "node:path"
- import { fileURLToPath } from "node:url"
- import { promisify } from "node:util"
-@@ -103,26 +102,7 @@
-     "!**/node_modules/js-yaml/dist/{js-yaml.js,js-yaml.min.js,*.map}",
-     "!**/node_modules/js-yaml/bin{,/**/*}",
-   ],
--  extraResources: [
--    {
--      from: "resources/",
--      to: "",
--      filter: ["opencode-cli", "opencode-cli.exe", "opencode-cli.version"],
+@@ -109,56 +109,7 @@
+       "!**/node_modules/js-yaml/dist/{js-yaml.js,js-yaml.min.js,*.map}",
+       "!**/node_modules/js-yaml/bin{,/**/*}",
+     ],
+-    extraResources: [
+-      {
+-        from: "resources/",
+-        to: "",
+-        filter: ["opencode-cli", "opencode-cli.exe", "opencode-cli.version"],
+-      },
+-    ],
+-    afterPack: async (context) => {
+-      const arch = Arch[context.arch]
+-
+-      // The --arm64 flag picks Electron while OPENCODE_CLI_TARGET picks the CLI and node-pty, so they can disagree.
+-      if (arch !== "x64" && arch !== "arm64") throw new Error(`Unsupported desktop architecture: ${arch}`)
+-
+-      if (arch !== target.cpu) throw new Error(`Packaging ${arch} Electron with the ${target.target} CLI`)
+-      const resources = context.packager.getResourcesDir(context.appOutDir)
+-      const cli = path.join(resources, context.electronPlatformName === "win32" ? "opencode-cli.exe" : "opencode-cli")
+-
+-      const file = await stat(cli)
+-
+-      if (!file.isFile() || file.size === 0) throw new Error(`Bundled CLI must be a non-empty file: ${cli}`)
+-      await NativeArch.verify(cli, arch)
+-      const version = path.join(path.dirname(cli), "opencode-cli.version")
+-
+-      if ((await stat(version)).size === 0) throw new Error(`Bundled CLI version must be a non-empty file: ${version}`)
+-
+-      if (context.electronPlatformName !== "win32") return
+-
+-      const prebuilds = path.join(
+-        resources,
+-        "app.asar.unpacked/node_modules",
+-        nodePtyPackage(target.target),
+-        "prebuilds",
+-        `${target.os}-${target.cpu}`,
+-      )
+-
+-      const addon = path.join(prebuilds, "conpty.node")
+-
+-      if ((await stat(addon)).size === 0) throw new Error(`Bundled node-pty must be a non-empty file: ${addon}`)
+-      const entries = await readdir(prebuilds, { recursive: true, withFileTypes: true })
+-
+-      await Promise.all(
+-        entries
+-          .filter((entry) => entry.isFile())
+-          .map(async (entry) => {
+-            const file = path.join(entry.parentPath, entry.name)
+-
+-            if (await NativeArch.isNative(file)) await NativeArch.verify(file, arch)
+-          }),
+-      )
 -    },
--  ],
--  afterPack: async (context) => {
--    const cli = path.join(
--      context.packager.getResourcesDir(context.appOutDir),
--      context.electronPlatformName === "win32" ? "opencode-cli.exe" : "opencode-cli",
--    )
--
--    const file = await stat(cli)
--
--    if (!file.isFile() || file.size === 0) throw new Error(`Bundled CLI must be a non-empty file: ${cli}`)
--    const version = path.join(path.dirname(cli), "opencode-cli.version")
--
--    if ((await stat(version)).size === 0) throw new Error(`Bundled CLI version must be a non-empty file: ${version}`)
--  },
-+  extraResources: [],
-   mac: {
-     category: "public.app-category.developer-tools",
-     icon: `resources/icons/icon.icns`,
++    extraResources: [],
+     mac: {
+       category: "public.app-category.developer-tools",
+       icon: `resources/icons/icon.icns`,
 --- a/packages/desktop/src/main/service/desktop-cli.ts
 +++ b/packages/desktop/src/main/service/desktop-cli.ts
-@@ -73,7 +73,12 @@
+@@ -75,6 +75,11 @@
  })
  
  const resolveBundledCli = Effect.fn("DesktopCli.resolveBundled")(function* (isolated: boolean) {
@@ -78,6 +99,4 @@ copy. System Electron's resourcesPath points at Electron, not this application.
 +  }
    const path = yield* Path.Path
    const paths = yield* DesktopPaths.resolve
--
-+
-   const bundled = app.isPackaged
+ 
